@@ -25,7 +25,7 @@ https://github.com/tigrilminnada/yt-multi-live-stream/archive/refs/heads/main.zi
 
 2. Install Dependencies
 ```
-pip install psutil
+pip install windows-curses
 ```
 3. Konfigurasi Awal
 - Jalankan tool pertama kali:
