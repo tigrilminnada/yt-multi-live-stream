@@ -20,7 +20,7 @@ Tambahkan ke PATH:
 ⚙️ Langkah 2: Setup Tool
 1. Download Script
 ```
-
+https://github.com/tigrilminnada/yt-multi-live-stream/archive/refs/heads/main.zip
 ```
 
 2. Install Dependencies
