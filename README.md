@@ -1,5 +1,5 @@
 
-# Youtube Multi Live Stream
+# Youtube Multi Live Stream ( windows Edition )
 
 📥 Langkah 1: Instal Prasyarat
 1. Install Python 3.10+
