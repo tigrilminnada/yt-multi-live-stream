@@ -59,11 +59,11 @@ python main.py
 4. Monitor Status
 - ``Pilih View Streaming Status untuk lihat uptime dan status real-time:``
 
-
+```
 ID  Label           Preset    Status      Uptime    PID       Video Source
 1   Channel Gaming  medium    streaming   01:23:45  12345     D:\game.mp4
 2   Music Live      high      stopped     00:00:00  N/A       http://stream.url
-
+```
 
 
 ## Authors
