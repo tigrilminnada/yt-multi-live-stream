@@ -65,6 +65,8 @@ ID  Label           Preset    Status      Uptime    PID       Video Source
 2   Music Live      high      stopped     00:00:00  N/A       http://stream.url
 ```
 
+📌 Catatan Penting
+- Tool ini tidak mendukung streaming ke platform selain YouTube.
 
 ## Authors
 
