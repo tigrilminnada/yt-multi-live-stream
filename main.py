@@ -6,6 +6,8 @@ import json
 from datetime import datetime
 import platform
 import signal
+import curses
+from curses import wrapper
 from collections import OrderedDict
 
 class YouTubeMultiStreamer:
@@ -23,6 +25,20 @@ class YouTubeMultiStreamer:
         self.load_config()
         self.status_refresh_rate = 5  # seconds
 
+    def init_curses(self):
+        """Initialize curses for status display"""
+        self.stdscr = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        self.stdscr.keypad(True)
+
+    def cleanup_curses(self):
+        """Cleanup curses before exiting"""
+        curses.nocbreak()
+        self.stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
+
     def clear_screen(self):
         """Clear the console screen"""
         if platform.system() == "Windows":
@@ -30,22 +46,25 @@ class YouTubeMultiStreamer:
         else:
             os.system('clear')
 
-    def show_banner(self):
+    def show_banner(self, stdscr=None):
         """Display MASANTO banner"""
-        banner = """
-        ███╗   ███╗ █████╗ ███████╗ █████╗ ███╗   ██╗████████╗ ██████╗ 
-        ████╗ ████║██╔══██╗██╔════╝██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗
-        ██╔████╔██║███████║███████╗███████║██╔██╗ ██║   ██║   ██║   ██║
-        ██║╚██╔╝██║██╔══██║╚════██║██╔══██║██║╚██╗██║   ██║   ██║   ██║
-        ██║ ╚═╝ ██║██║  ██║███████║██║  ██║██║ ╚████║   ██║   ╚██████╔╝
-        ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ 
-        
-              YouTube Multi-Streaming Tool v3.0 (Windows Edition)
-        =================================================================
-        |    Seller DO & RDP/VPS Murah https://wa.me/6282323434432      |
-        =================================================================
-        """
-        print(banner)
+        banner = [
+            "███╗   ███╗ █████╗ ███████╗ █████╗ ███╗   ██╗████████╗ ██████╗ ",
+            "████╗ ████║██╔══██╗██╔════╝██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗",
+            "██╔████╔██║███████║███████╗███████║██╔██╗ ██║   ██║   ██║   ██║",
+            "██║╚██╔╝██║██╔══██║╚════██║██╔══██║██║╚██╗██║   ██║   ██║   ██║",
+            "██║ ╚═╝ ██║██║  ██║███████║██║  ██║██║ ╚████║   ██║   ╚██████╔╝",
+            "╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ",
+            "",
+            "YouTube Multi-Streaming Tool v3.0",
+            "Advanced Multi-Video Streaming with Status Monitoring"
+        ]
+
+        if stdscr:
+            for i, line in enumerate(banner):
+                stdscr.addstr(i, 0, line, curses.A_BOLD)
+        else:
+            print("\n".join(banner))
 
     def load_config(self):
         """Load configuration from JSON file"""
@@ -279,77 +298,65 @@ class YouTubeMultiStreamer:
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-    def display_status_dashboard(self):
-        """Display real-time streaming status dashboard (without curses)"""
-        last_update = time.time()
+    def display_status_dashboard(self, stdscr):
+        """Display real-time streaming status dashboard"""
+        curses.curs_set(0)  # Hide cursor
+        stdscr.nodelay(1)  # Non-blocking input
         
         while True:
-            # Clear screen and show banner
-            self.clear_screen()
-            self.show_banner()
+            stdscr.clear()
+            self.show_banner(stdscr)
             
             # Display header
-            print("\nStreaming Status Dashboard (Auto-refresh every 5 seconds)")
-            print("=" * 100)
-            print("ID  Label              Preset    Status      Uptime    PID       Video Source")
-            print("-" * 100)
+            header_line = 8
+            stdscr.addstr(header_line, 0, "=" * 80)
+            stdscr.addstr(header_line + 1, 0, 
+                "ID  Label              Preset    Status      Uptime    Video Source", 
+                curses.A_BOLD)
+            stdscr.addstr(header_line + 2, 0, "-" * 80)
             
             # Display each account status
+            line = header_line + 3
             for account_id in self.accounts:
                 status = self.get_stream_status(account_id)
                 if not status:
                     continue
                     
-                # Highlight running streams
-                if status['status'] == 'streaming':
-                    status_line = (
-                        f"{status['id']:<4} "
-                        f"{status['label'][:15].ljust(16)} "
-                        f"{status['preset'].ljust(9)} "
-                        f"\033[1;32m{status['status'].ljust(11)}\033[0m "
-                        f"{status['uptime'].ljust(9)} "
-                        f"{str(status.get('pid', 'N/A')).ljust(8)} "
-                        f"{status['video_source'][:40]}"
-                    )
-                else:
-                    status_line = (
-                        f"{status['id']:<4} "
-                        f"{status['label'][:15].ljust(16)} "
-                        f"{status['preset'].ljust(9)} "
-                        f"\033[1;31m{status['status'].ljust(11)}\033[0m "
-                        f"{'00:00:00'.ljust(9)} "
-                        f"{'N/A'.ljust(8)} "
-                        f"{status['video_source'][:40]}"
-                    )
+                line_str = (
+                    f"{status['id']:<4} "
+                    f"{status['label'][:15].ljust(16)} "
+                    f"{status['preset'].ljust(9)} "
+                    f"{status['status'].ljust(11)} "
+                    f"{status['uptime'].ljust(9)} "
+                    f"{status['video_source'][:30]}"
+                )
                 
-                print(status_line)
+                # Highlight running streams
+                attr = curses.A_BOLD if status['status'] == 'streaming' else curses.A_NORMAL
+                stdscr.addstr(line, 0, line_str, attr)
+                line += 1
+                
+                # Wrap if too many lines
+                if line >= curses.LINES - 3:
+                    break
             
             # Display footer and instructions
-            print("-" * 100)
-            print("Press Ctrl+C to return to menu (will auto-refresh in 5 seconds)")
+            stdscr.addstr(curses.LINES - 3, 0, "=" * 80)
+            stdscr.addstr(curses.LINES - 2, 0, 
+                "Press 'q' to quit, 'r' to refresh, 'm' for main menu", 
+                curses.A_DIM)
             
-            # Check for user input (non-blocking)
-            try:
-                # Wait for 5 seconds or until key press
-                start_time = time.time()
-                while (time.time() - start_time) < self.status_refresh_rate:
-                    if platform.system() == "Windows":
-                        # On Windows, use msvcrt for keyboard check
-                        import msvcrt
-                        if msvcrt.kbhit():
-                            msvcrt.getch()  # Clear the input buffer
-                            return
-                    else:
-                        # On Unix, use select for input check
-                        import sys
-                        import select
-                        if select.select([sys.stdin], [], [], 0.1)[0]:
-                            sys.stdin.read(1)  # Clear the input buffer
-                            return
-                    time.sleep(0.1)
-                
-            except KeyboardInterrupt:
-                return
+            # Check for user input
+            key = stdscr.getch()
+            if key == ord('q'):
+                break
+            elif key == ord('m'):
+                return 'menu'
+            
+            stdscr.refresh()
+            time.sleep(self.status_refresh_rate)
+        
+        return 'exit'
 
 def account_management_menu(streamer):
     """Account management menu"""
@@ -521,11 +528,10 @@ def stream_control_menu(streamer):
             input("\nPress Enter to continue...")
             
         elif choice == '5':
-            try:
-                streamer.display_status_dashboard()
-            except KeyboardInterrupt:
-                print("\nReturning to menu...")
-                time.sleep(1)
+            result = streamer.display_status_dashboard(curses.initscr())
+            curses.endwin()
+            if result == 'exit':
+                return 'exit'
                 
         elif choice == '6':
             break
@@ -603,7 +609,9 @@ def main():
             account_management_menu(streamer)
             
         elif choice == '2':
-            stream_control_menu(streamer)
+            result = stream_control_menu(streamer)
+            if result == 'exit':
+                break
                 
         elif choice == '3':
             preset_management_menu(streamer)
@@ -624,5 +632,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n\nProgram interrupted by user. Exiting gracefully...")
     finally:
-        # Cleanup if needed
-        pass
+        # Ensure curses is properly cleaned up
+        try:
+            curses.endwin()
+        except:
+            pass
